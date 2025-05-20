@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphQL Query Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --primary-color: #00ff00;
+            --bg-color: #0a0a0a;
+            --text-color: #00ff00;
+            --border-color: #00ff00;
+            --hover-bg: #00ff00;
+            --hover-text: #0a0a0a;
+            --scrollbar-track: #0a0a0a;
+            --scrollbar-thumb: #00ff00;
+            --error-bg: #450a0a;
+            --error-border: #ef4444;
+            --error-text: #fecaca;
+        }
+
+        :root[data-theme="light"] {
+            --primary-color: #2563eb;
+            --bg-color: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #2563eb;
+            --hover-bg: #2563eb;
+            --hover-text: #ffffff;
+            --scrollbar-track: #f1f5f9;
+            --scrollbar-thumb: #2563eb;
+            --error-bg: #fee2e2;
+            --error-border: #ef4444;
+            --error-text: #991b1b;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        
+        .terminal {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .terminal-input {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .terminal-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px var(--primary-color);
+        }
+        
+        .terminal-button {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            transition: all 0.2s ease;
+        }
+        
+        .terminal-button:hover {
+            background-color: var(--hover-bg);
+            color: var(--hover-text);
+        }
+        
+        .terminal-checkbox {
+            accent-color: var(--primary-color);
+        }
+        
+        .terminal-scroll {
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+            scrollbar-width: thin;
+        }
+        
+        .terminal-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .terminal-scroll::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+        
+        .terminal-scroll::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+        
+        .glow {
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+        
+        .terminal-pre {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom file input styling */
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .file-input-button:hover {
+            background-color: var(--hover-bg);
+            color: var(--hover-text);
+        }
+
+        .file-name {
+            margin-left: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-color);
+        }
+
+        .operation-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .operation-tab {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .operation-tab.active {
+            background-color: var(--primary-color);
+            color: var(--hover-text);
+        }
+
+        .operation-tab:hover:not(.active) {
+            background-color: var(--hover-bg);
+            color: var(--hover-text);
+            opacity: 0.8;
+        }
+
+        .theme-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 9999px;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-switch:hover {
+            background-color: var(--hover-bg);
+            color: var(--hover-text);
+        }
+
+        .error-message {
+            background-color: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error-text);
+        }
+
+        .creator-banner {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-color);
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .creator-banner:hover {
+            opacity: 1;
+        }
+
+        .creator-banner .heart {
+            color: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <button @click="toggleTheme" class="theme-switch" :title="isDarkTheme ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+            {{ isDarkTheme ? '☀️' : '🌙' }}
+        </button>
+
+        <h1 class="text-3xl font-bold text-center mb-8 glow">GraphQL Query Builder v1.0.0</h1>
+        
+        <!-- Input Section -->
+        <div class="terminal rounded-lg shadow-md p-6 mb-8">
+            <div class="flex space-x-4 mb-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Upload Introspection File</label>
+                    <div class="file-input-wrapper">
+                        <div class="file-input-button">
+                            <span>Choose File</span>
+                            <span v-if="selectedFileName" class="file-name">{{ selectedFileName }}</span>
+                        </div>
+                        <input type="file" @change="handleFileUpload" accept=".json">
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium mb-2">Or Paste Introspection JSON</label>
+                    <textarea v-model="introspectionJson" class="terminal-input w-full px-3 py-2 rounded-md h-32" placeholder="Paste your GraphQL introspection JSON here..."></textarea>
+                </div>
+            </div>
+            <button @click="parseIntrospection" class="terminal-button px-4 py-2 rounded-md">Parse Introspection</button>
+        </div>
+
+        <!-- Error Message -->
+        <div v-if="error" class="error-message px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">{{ error }}</span>
+        </div>
+
+        <!-- Query Builder Section -->
+        <div v-if="hasValidSchema" class="grid grid-cols-2 gap-6">
+            <!-- Operations Selection -->
+            <div class="terminal rounded-lg shadow-md p-6 h-[600px] flex flex-col">
+                <h2 class="text-xl font-semibold mb-4 glow">Operations</h2>
+                <div class="operation-tabs">
+                    <div 
+                        v-for="type in queryTypes" 
+                        :key="type.name"
+                        :class="['operation-tab', { active: activeOperation === type.name }]"
+                        @click="activeOperation = type.name"
+                    >
+                        {{ type.name }}
+                    </div>
+                </div>
+                <div class="space-y-4 overflow-y-auto terminal-scroll flex-grow">
+                    <div v-for="field in getActiveTypeFields" :key="field.name" class="ml-4">
+                        <div class="mb-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" v-model="selectedFields[field.name]" class="terminal-checkbox rounded">
+                                <span>{{ field.name }}</span>
+                            </label>
+                            
+                            <!-- Parameters -->
+                            <div v-if="field.args && field.args.length > 0" class="ml-6 mt-1">
+                                <div v-for="arg in field.args" :key="arg.name" class="mb-1">
+                                    <label class="text-sm">{{ arg.name }}:</label>
+                                    <input 
+                                        v-model="fieldParams[field.name][arg.name]" 
+                                        :placeholder="getTypeName(arg.type)"
+                                        class="terminal-input ml-2 px-2 py-1 text-sm rounded"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Nested Fields -->
+                            <div v-if="selectedFields[field.name]" class="ml-6 mt-1">
+                                <div v-for="nestedField in getNestedFields(field.type)" :key="nestedField.name" class="mb-1">
+                                    <label class="flex items-center space-x-2">
+                                        <input 
+                                            type="checkbox" 
+                                            v-model="nestedFields[field.name][nestedField.name]" 
+                                            class="terminal-checkbox rounded"
+                                        >
+                                        <span>{{ nestedField.name }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Query Preview -->
+            <div class="terminal rounded-lg shadow-md p-6 h-[600px] flex flex-col">
+                <h2 class="text-xl font-semibold mb-4 glow">Query Preview</h2>
+                <pre class="terminal-pre p-4 rounded-md overflow-auto flex-grow">{{ generatedQuery }}</pre>
+                <button @click="copyQuery" class="terminal-button mt-4 px-4 py-2 rounded-md">Copy Query</button>
+            </div>
+        </div>
+    </div>
+
+    <a href="https://github.com/leddcode" target="_blank" class="creator-banner">
+        Made with <span class="heart">❤</span> by @leddcode
+    </a>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    introspectionJson: '',
+                    schema: null,
+                    selectedFields: {},
+                    fieldParams: {},
+                    nestedFields: {},
+                    error: null,
+                    selectedFileName: '',
+                    activeOperation: 'Query',
+                    isDarkTheme: true
+                }
+            },
+            mounted() {
+                // Check for saved theme preference
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    this.isDarkTheme = savedTheme === 'dark';
+                    this.applyTheme();
+                }
+            },
+            computed: {
+                hasValidSchema() {
+                    return this.schema && 
+                           this.schema.__schema && 
+                           this.schema.__schema.types && 
+                           Array.isArray(this.schema.__schema.types);
+                },
+                queryTypes() {
+                    if (!this.hasValidSchema) return [];
+                    return this.schema.__schema.types.filter(type => 
+                        type.kind === 'OBJECT' && 
+                        (type.name === 'Query' || type.name === 'Mutation')
+                    );
+                },
+                getActiveTypeFields() {
+                    const activeType = this.queryTypes.find(type => type.name === this.activeOperation);
+                    return activeType ? activeType.fields : [];
+                },
+                selectedOperationType() {
+                    const queryType = this.queryTypes.find(type => type.name === 'Query');
+                    const mutationType = this.queryTypes.find(type => type.name === 'Mutation');
+                    
+                    const hasQueryFields = queryType?.fields.some(field => this.selectedFields[field.name]);
+                    const hasMutationFields = mutationType?.fields.some(field => this.selectedFields[field.name]);
+                    
+                    if (hasQueryFields && hasMutationFields) return 'both';
+                    if (hasQueryFields) return 'Query';
+                    if (hasMutationFields) return 'Mutation';
+                    return null;
+                },
+                generatedQuery() {
+                    if (!this.hasValidSchema || !this.selectedOperationType) return '';
+                    
+                    const operations = [];
+                    
+                    if (this.selectedOperationType === 'both' || this.selectedOperationType === 'Query') {
+                        const queryType = this.queryTypes.find(t => t.name === 'Query');
+                        if (queryType) {
+                            const fields = this.buildOperationFields(queryType);
+                            if (fields.length > 0) {
+                                operations.push(`query {
+    ${fields.join('\n    ')}
+}`);
+                            }
+                        }
+                    }
+                    
+                    if (this.selectedOperationType === 'both' || this.selectedOperationType === 'Mutation') {
+                        const mutationType = this.queryTypes.find(t => t.name === 'Mutation');
+                        if (mutationType) {
+                            const fields = this.buildOperationFields(mutationType);
+                            if (fields.length > 0) {
+                                operations.push(`mutation {
+    ${fields.join('\n    ')}
+}`);
+                            }
+                        }
+                    }
+                    
+                    return operations.join('\n\n');
+                }
+            },
+            methods: {
+                toggleTheme() {
+                    this.isDarkTheme = !this.isDarkTheme;
+                    this.applyTheme();
+                    localStorage.setItem('theme', this.isDarkTheme ? 'dark' : 'light');
+                },
+                applyTheme() {
+                    document.documentElement.setAttribute('data-theme', this.isDarkTheme ? 'dark' : 'light');
+                },
+                buildOperationFields(type) {
+                    // Get unique fields that are selected
+                    const uniqueFields = new Set(
+                        type.fields
+                            .filter(field => this.selectedFields[field.name])
+                            .map(field => field.name)
+                    );
+
+                    return Array.from(uniqueFields).map(fieldName => {
+                        const field = type.fields.find(f => f.name === fieldName);
+                        const params = this.buildFieldParams(field);
+                        const nested = this.buildNestedFields(fieldName);
+                        return `${fieldName}${params}${nested}`;
+                    });
+                },
+                getTypeName(type) {
+                    if (!type) return '';
+                    if (type.kind === 'NON_NULL') {
+                        return this.getTypeName(type.ofType) + '!';
+                    }
+                    if (type.kind === 'LIST') {
+                        return '[' + this.getTypeName(type.ofType) + ']';
+                    }
+                    return type.name || '';
+                },
+                getNestedFields(type) {
+                    if (!type) return [];
+                    if (type.kind === 'NON_NULL' || type.kind === 'LIST') {
+                        return this.getNestedFields(type.ofType);
+                    }
+                    if (type.kind === 'OBJECT') {
+                        const typeDef = this.schema.__schema.types.find(t => t.name === type.name);
+                        return typeDef?.fields || [];
+                    }
+                    return [];
+                },
+                buildFieldParams(field) {
+                    if (!field.args || field.args.length === 0) return '';
+                    
+                    const params = field.args
+                        .map(arg => {
+                            const value = this.fieldParams[field.name]?.[arg.name];
+                            if (value === undefined) return null;
+                            return `${arg.name}: ${value}`;
+                        })
+                        .filter(Boolean);
+
+                    return params.length > 0 ? `(${params.join(', ')})` : '';
+                },
+                buildNestedFields(fieldName) {
+                    const nested = this.nestedFields[fieldName];
+                    if (!nested) return '';
+
+                    const fields = Object.entries(nested)
+                        .filter(([_, selected]) => selected)
+                        .map(([name]) => name);
+
+                    return fields.length > 0 ? ` {
+        ${fields.join('\n        ')}
+    }` : '';
+                },
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    this.selectedFileName = file.name;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            this.schema = this.extractSchema(data);
+                            this.error = null;
+                            this.initializeFieldData();
+                        } catch (error) {
+                            this.error = 'Invalid JSON file';
+                            this.schema = null;
+                        }
+                    };
+                    reader.readAsText(file);
+                },
+                parseIntrospection() {
+                    if (!this.introspectionJson) {
+                        this.error = 'Please enter introspection JSON';
+                        return;
+                    }
+
+                    try {
+                        const data = JSON.parse(this.introspectionJson);
+                        this.schema = this.extractSchema(data);
+                        this.error = null;
+                        this.initializeFieldData();
+                    } catch (error) {
+                        this.error = 'Error parsing introspection data';
+                        this.schema = null;
+                    }
+                },
+                extractSchema(data) {
+                    if (data.__schema) return data;
+                    if (data.data && data.data.__schema) return data.data;
+                    return null;
+                },
+                initializeFieldData() {
+                    this.selectedFields = {};
+                    this.fieldParams = {};
+                    this.nestedFields = {};
+                    this.activeOperation = 'Query';
+
+                    this.queryTypes.forEach(type => {
+                        type.fields.forEach(field => {
+                            this.selectedFields[field.name] = false;
+                            this.fieldParams[field.name] = {};
+                            this.nestedFields[field.name] = {};
+                            
+                            if (field.args) {
+                                field.args.forEach(arg => {
+                                    this.fieldParams[field.name][arg.name] = '';
+                                });
+                            }
+
+                            const nested = this.getNestedFields(field.type);
+                            nested.forEach(nestedField => {
+                                this.nestedFields[field.name][nestedField.name] = false;
+                            });
+                        });
+                    });
+                },
+                copyQuery() {
+                    navigator.clipboard.writeText(this.generatedQuery);
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html> 
