@@ -1,4 +1,4 @@
-# 🔧 GraphQL Query Builder (HTML App)
+# 🔧 GraphQL Query Builder v1.0.0
 
 A simple, interactive **GraphQL query builder** built using pure HTML, JavaScript, and CSS. This tool is designed to help developers, testers, and security researchers quickly construct and test GraphQL queries with ease.
 
