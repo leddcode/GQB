@@ -35,6 +35,3 @@ This project is **free to use** for personal and commercial purposes, with one c
 > 🙌 Please link back to this repository or include the author's name in your project or tool documentation.
 
 
----
-
-## 🙏 Acknowledgments
